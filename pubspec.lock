@@ -330,7 +330,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "83563e3d9242196cba1e923fd8c12428898a6d8e"
+      resolved-ref: "9db9346bb5928986c55ad6915c139c9e2436ce4e"
       url: "https://github.com/redsolver/skynet"
     source: git
     version: "2.0.0"

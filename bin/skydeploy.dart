@@ -146,7 +146,7 @@ void processDirectory(Directory dir) {
 }
 
 void exitWithHelp() {
-  print(greenBold('SkyDeploy CLI v1.0'));
+  print(greenBold('SkyDeploy CLI v1.0.1'));
 
   print('');
 
