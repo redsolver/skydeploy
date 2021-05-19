@@ -42,7 +42,7 @@ void main(List<String> arguments) async {
   try {
     config = json.decode(configFile.readAsStringSync());
   } catch (e, st) {}
-  
+
   if (!config.containsKey('seed')) {
     final key = SkynetUser.generateSeed();
     config['seed'] = hex.encode(key);
@@ -133,7 +133,7 @@ void processDirectory(Directory dir) {
       final file = entity;
       String path = file.path;
 
-      path = path.substring(directoryPath.length);
+      path = path.substring(directoryPath.length).replaceAll('\\', '/');
 
       if (path.startsWith('/')) path = path.substring(1);
 
@@ -146,7 +146,7 @@ void processDirectory(Directory dir) {
 }
 
 void exitWithHelp() {
-  print(greenBold('SkyDeploy CLI v1.0.1'));
+  print(greenBold('SkyDeploy CLI v1.0.2'));
 
   print('');
 
