@@ -29,7 +29,13 @@ void main(List<String> arguments) async {
     exit(1);
   }
 
-  final configFile = File(join(configHome.path, 'skydeploy', 'auth.json'));
+  final configFile = File(
+    join(
+      Platform.isWindows ? Platform.environment['homepath'] : configHome.path,
+      'skydeploy',
+      'auth.json',
+    ),
+  );
 
   if (!configFile.existsSync()) {
     await configFile.createSync(recursive: true);
