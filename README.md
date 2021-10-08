@@ -1,6 +1,6 @@
 # SkyDeploy
 
-Command-Line Tool for easily deploying web apps on Skynet and setting the skyns records to point your HNS domain to the new version.
+Command-Line Tool for easily deploying web apps on Skynet and getting a Skylink v2 you can use to point your HNS or ENS domain to your web app.
 
 ## Install
 
