@@ -1,28 +1,64 @@
+// @dart=2.9
+
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:convert/convert.dart';
 import 'package:path/path.dart';
 import 'package:skynet/skynet.dart';
+import 'package:skynet/src/registry_classes.dart';
+import 'package:skynet/src/crypto.dart';
 import 'package:xdg_directories/xdg_directories.dart';
 import 'package:ansicolor/ansicolor.dart';
+import 'package:skynet/src/utils/convert.dart';
 
 AnsiPen greenBold = AnsiPen()..green(bold: true);
 AnsiPen magenta = AnsiPen()..magenta();
 AnsiPen red = AnsiPen()..red();
+AnsiPen gray = AnsiPen()..gray();
 
 String directoryPath;
 
 Map<String, Stream<List<int>>> fileStreams = {};
 Map<String, int> lengths = {};
 
+final client = SkynetClient(/* portal: 'skyportal.xyz' */);
+
 void main(List<String> arguments) async {
   if (arguments.isEmpty) {
     exitWithHelp();
   }
-  directoryPath = arguments.first;
+
+  String confDatakey;
+
+  List<String> tryFiles;
+  Map errorPages;
+
+  final localConfigFile = File('skydeploy.json');
+
+  if (localConfigFile.existsSync()) {
+    final key = arguments.first;
+    final data = json.decode(localConfigFile.readAsStringSync());
+
+    if (!data.containsKey(key)) {
+      throw 'Deploy profile "$key" not found in skydeploy.json file';
+    }
+
+    print('Using deploy profile "$key" from skydeploy.json file...');
+
+    final conf = data[key];
+
+    directoryPath = canonicalize(conf['dir']);
+    confDatakey = conf['datakey'];
+    tryFiles = conf['tryFiles']?.cast<String>();
+    errorPages = conf['errorPages'];
+  } else {
+    directoryPath = canonicalize(arguments.first);
+  }
 
   final dir = Directory(directoryPath);
+
+  String datakey = confDatakey ?? 'project-${dir.absolute.path}';
 
   if (!dir.existsSync()) {
     print(red('Directory ${dir.path} does not exist!'));
@@ -55,31 +91,35 @@ void main(List<String> arguments) async {
     await configFile.writeAsStringSync(json.encode(config));
   }
 
-  final skynetUser = SkynetUser.fromSeed(hex.decode(config['seed']));
+  final skynetUser =
+      await SkynetUser.createFromSeedAsync(hex.decode(config['seed']));
 
   print('User: ${skynetUser.id}...');
   print('');
 
   print(
-      'Uploading ${magenta(directoryPath)} to ${greenBold(SkynetConfig.host)}...');
+      'Uploading ${magenta(directoryPath)} to ${greenBold(client.portalHost)}...');
   print('');
 
   processDirectory(dir);
 
-  final skylink = await uploadDirectory(
+  final skylink = await client.upload.uploadDirectory(
     fileStreams,
     lengths,
     'web',
+    tryFiles: tryFiles,
+    errorPages: errorPages,
+    /*   errorPages: {
+      '404': '/404.html',
+    }, */
   );
 
   print('');
-  print('Skylink: ${greenBold("sia://${skylink}")}');
-
-  final datakey = 'project-${dir.absolute.path}';
+  print('Static Skylink: ${greenBold("sia://${skylink}")}');
 
   print('');
 
-  print('Setting ${magenta('skyns://')} record...');
+  print('Setting ${magenta('Skylink v2')}...');
   print('Using datakey ${greenBold(datakey)}...');
   print('');
 
@@ -87,7 +127,7 @@ void main(List<String> arguments) async {
 
   try {
     // fetch the current value to find out the revision
-    final res = await getEntry(skynetUser, datakey);
+    final res = await client.registry.getEntry(skynetUser, datakey);
 
     existing = res;
 
@@ -99,32 +139,38 @@ void main(List<String> arguments) async {
     print('Revision 1');
   }
 
-  // build the registry value
-  final rv = RegistryEntry(
-    datakey: datakey,
-    data: utf8.encode(skylink),
-    revision: (existing?.entry?.revision ?? 0) + 1,
-  );
-
-  // sign it
-  final sig = await skynetUser.sign(rv.hash());
-
-  final srv = SignedRegistryEntry(signature: sig, entry: rv);
-
   // update the registry
-  final updated = await setEntry(skynetUser, datakey, srv);
+  final updated = await client.registry.setEntry(
+      skynetUser,
+      datakey,
+      convertSkylinkToUint8List(
+        skylink,
+      ));
 
   if (updated) {
-    final skynsRecord =
-        'skyns://ed25519%3A${skynetUser.id}/${hex.encode(hashDatakey(datakey))}';
+    final skylinkV2 = 'sia://' +
+        client.registry.getEntryLink(
+          skynetUser.id,
+          datakey,
+        );
+    /* final skynsRecord =
+        'skyns://ed25519%3A${skynetUser.id}/${hex.encode(hashDatakey(datakey))}'; */
 
     print('');
 
     print(
-        '${greenBold('Success!')} Please put this ${magenta('TXT')} record on your Handshake domain: ${greenBold(skynsRecord)}');
+        '${greenBold('Success!')} Please put this ${magenta('TXT')} record on your Handshake domain: ${greenBold(skylinkV2)}');
+
+    // print('Deprecated skyns:// record: ${gray(skynsRecord)}');
     print(
         'Hint: If you already used SkyDeploy in this project directory, the TXT record is most likely already set!');
+    print('');
 
+    final url =
+        'https://${encodeSkylinkToBase32(convertSkylinkToUint8List(skylinkV2.substring(6)))}.siasky.net';
+
+    print(
+        'You can directly access your uploaded directory using this link: ${greenBold(url)}');
     exit(0);
   } else {
     print(red('Something went wrong'));
@@ -152,7 +198,7 @@ void processDirectory(Directory dir) {
 }
 
 void exitWithHelp() {
-  print(greenBold('SkyDeploy CLI v1.0.2'));
+  print(greenBold('SkyDeploy CLI v2.0.0'));
 
   print('');
 

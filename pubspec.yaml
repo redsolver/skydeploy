@@ -1,6 +1,6 @@
 name: skydeploy
-description: A sample command-line application.
-version: 1.0.2
+description: Simple CLI to deploy apps to Skynet
+version: 2.0.0
 # homepage: https://www.example.com
 environment:
   sdk: ">=2.10.0 <3.0.0"
@@ -8,12 +8,14 @@ environment:
 dependencies:
   path: ^1.7.0
   skynet:
-    git: https://github.com/redsolver/skynet
+    git:
+      url: https://github.com/redsolver/skynet
+      ref: 9113407983c6e96d082ea6e1e109c44967e7e557
   prompts: ^1.3.1
   xdg_directories: ^0.1.2
-  convert: ^2.1.1
+  convert: ^3.0.0
   ansicolor: ^1.0.5
-  http: ^0.12.2
+  http: ^0.13.3
 
 dev_dependencies:
   pedantic: ^1.9.0
