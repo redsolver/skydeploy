@@ -22,11 +22,15 @@ String directoryPath;
 Map<String, Stream<List<int>>> fileStreams = {};
 Map<String, int> lengths = {};
 
-final client = SkynetClient(/* portal: 'skyportal.xyz' */);
+var client = SkynetClient(/* portal: 'skyportal.xyz' */);
 
 void main(List<String> arguments) async {
   if (arguments.isEmpty) {
     exitWithHelp();
+  }
+
+  if (arguments.length > 1) {
+    client = SkynetClient(portal: arguments[1]);
   }
 
   String confDatakey;
@@ -167,7 +171,7 @@ void main(List<String> arguments) async {
     print('');
 
     final url =
-        'https://${encodeSkylinkToBase32(convertSkylinkToUint8List(skylinkV2.substring(6)))}.siasky.net';
+        'https://${encodeSkylinkToBase32(convertSkylinkToUint8List(skylinkV2.substring(6)))}.${client.portalHost}';
 
     print(
         'You can directly access your uploaded directory using this link: ${greenBold(url)}');
