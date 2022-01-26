@@ -22,15 +22,11 @@ String directoryPath;
 Map<String, Stream<List<int>>> fileStreams = {};
 Map<String, int> lengths = {};
 
-var client = SkynetClient(/* portal: 'skyportal.xyz' */);
+var client = SkynetClient();
 
 void main(List<String> arguments) async {
   if (arguments.isEmpty) {
     exitWithHelp();
-  }
-
-  if (arguments.length > 1) {
-    client = SkynetClient(portal: arguments[1]);
   }
 
   String confDatakey;
@@ -73,7 +69,7 @@ void main(List<String> arguments) async {
     join(
       Platform.isWindows ? Platform.environment['homepath'] : configHome.path,
       'skydeploy',
-      'auth.json',
+      'config.json',
     ),
   );
 
@@ -94,6 +90,8 @@ void main(List<String> arguments) async {
     config['seed'] = hex.encode(key);
     await configFile.writeAsStringSync(json.encode(config));
   }
+
+  client = SkynetClient(portal: config['portal'], cookie: config['skynet-jwt']);
 
   final skynetUser =
       await SkynetUser.createFromSeedAsync(hex.decode(config['seed']));
