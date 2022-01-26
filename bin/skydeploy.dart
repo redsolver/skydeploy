@@ -64,17 +64,32 @@ void main(List<String> arguments) async {
     print(red('Directory ${dir.path} does not exist!'));
     exit(1);
   }
-
-  final configFile = File(
+  final configDir = Directory(
     join(
       Platform.isWindows ? Platform.environment['homepath'] : configHome.path,
       'skydeploy',
+    ),
+  );
+
+  final oldConfigFile = File(
+    join(
+      configDir.path,
+      'auth.json',
+    ),
+  );
+
+  final configFile = File(
+    join(
+      configDir.path,
       'config.json',
     ),
   );
 
   if (!configFile.existsSync()) {
-    await configFile.createSync(recursive: true);
+    configFile.createSync(recursive: true);
+    if (oldConfigFile.existsSync()) {
+      configFile.writeAsBytesSync(oldConfigFile.readAsBytesSync());
+    }
   }
   print('Using config');
   print('Auth: ${configFile.path}');
@@ -91,7 +106,7 @@ void main(List<String> arguments) async {
     await configFile.writeAsStringSync(json.encode(config));
   }
 
-  client = SkynetClient(portal: config['portal'], cookie: config['skynet-jwt']);
+  client = SkynetClient(portal: config['portal'], cookie: config['cookie']);
 
   final skynetUser =
       await SkynetUser.createFromSeedAsync(hex.decode(config['seed']));
@@ -200,7 +215,7 @@ void processDirectory(Directory dir) {
 }
 
 void exitWithHelp() {
-  print(greenBold('SkyDeploy CLI v2.0.0'));
+  print(greenBold('SkyDeploy CLI v2.1.0'));
 
   print('');
 
